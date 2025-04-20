@@ -314,15 +314,52 @@ uint16_t strToNum(char* str)
 
 uint8_t isNumber(char* str)
 {
-    // Check if the string is a number
-    for (size_t i = 0; i < strlen(str); i++)
+    // Check if the string is a valid number in decimal, hexadecimal, binary, or octal format
+    if (str[0] == '0' && str[1] == 'x') // Hexadecimal
     {
-        if (!isdigit(str[i]) && str[i] != '-' && str[i] != '0' && str[i] != 'x' && str[i] != 'b' && str[i] != 'o')
+        for (size_t i = 2; i < strlen(str); i++)
         {
-            return 0; // Not a number
+            if (!isxdigit(str[i]))
+            {
+                return 0; // Not a valid hexadecimal number
+            }
         }
+        return 1; // Valid hexadecimal number
     }
-    return 1; // Is a number
+    else if (str[0] == '0' && str[1] == 'b') // Binary
+    {
+        for (size_t i = 2; i < strlen(str); i++)
+        {
+            if (str[i] != '0' && str[i] != '1')
+            {
+                return 0; // Not a valid binary number
+            }
+        }
+        return 1; // Valid binary number
+    }
+    else if (str[0] == '0' && str[1] == 'o') // Octal
+    {
+        for (size_t i = 2; i < strlen(str); i++)
+        {
+            if (str[i] < '0' || str[i] > '7')
+            {
+                return 0; // Not a valid octal number
+            }
+        }
+        return 1; // Valid octal number
+    }
+    else if (str[0] == '-' || isdigit(str[0])) // Decimal or negative number
+    {
+        for (size_t i = (str[0] == '-' ? 1 : 0); i < strlen(str); i++)
+        {
+            if (!isdigit(str[i]))
+            {
+                return 0; // Not a valid decimal number
+            }
+        }
+        return 1; // Valid decimal number
+    }
+    return 0; // Not a number
 }
 
 uint8_t getRegisterOffset(char reg)
@@ -476,7 +513,7 @@ void getOpcode(char* possibleKey)
     {
         if (!strcmp(splitWords[0], "JMP") || !strcmp(splitWords[0], "JZ") || !strcmp(splitWords[0], "JNZ") ||
             !strcmp(splitWords[0], "JC") || !strcmp(splitWords[0], "JNC") || !strcmp(splitWords[0], "JZC") || 
-            !strcmp(splitWords[0], "CALL"))
+            !strcmp(splitWords[0], "CALL") || !strcmp(splitWords[0], "SAA") || !strcmp(splitWords[0], "LAA"))
         {
             uint16_t nextnum;
             if (isNumber(splitWords[1]))
@@ -499,24 +536,37 @@ void getOpcode(char* possibleKey)
             pushByte(*opcode);
             pushWord(nextnum);
         }
-        else if (!strcmp(splitWords[0], "LAA") || !strcmp(splitWords[0], "SAA"))
-        {
-            uint16_t nextnum = strToNum(splitWords[1]);
-            pushByte(*opcode);
-            pushWord(nextnum);
-        }
         else if (!strcmp(splitWords[0], "MVI") || !strcmp(splitWords[0], "ADI") || 
-                 !strcmp(splitWords[0], "SBI") || !strcmp(splitWords[0], "CPI"))
+             !strcmp(splitWords[0], "SBI") || !strcmp(splitWords[0], "CPI"))
         {
             char reg = splitWords[1][0];
             uint8_t regOffset = getRegisterOffset(reg);
             if (regOffset == (uint8_t)-1)
             {
-                freeSplit(splitWords, splitcount);
-                printf("Invalid register: %s\n", splitWords[1]);
-                exit(1);
+            freeSplit(splitWords, splitcount);
+            printf("Invalid register: %s\n", splitWords[1]);
+            exit(1);
             }
-            uint8_t nextnum = strToU8(splitWords[2]);
+
+            uint8_t nextnum;
+            if (isNumber(splitWords[2]))
+            {
+            nextnum = strToU8(splitWords[2]);
+            }
+            else
+            {
+            int16_t labelAddr = getLabelAddress(splitWords[2]);
+            if (labelAddr == -1)
+            {
+                addUnresolvedLabel(splitWords[2], getBytestackSize() + 1);
+                nextnum = 0; // Placeholder
+            }
+            else
+            {
+                nextnum = (uint8_t)labelAddr;
+            }
+            }
+
             pushByte(*opcode + regOffset);
             pushByte(nextnum);
         }

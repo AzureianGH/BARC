@@ -6,8 +6,8 @@
 
 #define MAX_CALL_STACK_SIZE 8
 
-#define INPUT_FUNCTION 0
-#define OUTPUT_FUNCTION 1
+#define INPUT_FUNCTION 1
+#define OUTPUT_FUNCTION 0
 
 //function ptr for in: uint8_t name()
 typedef uint8_t (*INFunction)(void);

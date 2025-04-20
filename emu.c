@@ -1,6 +1,7 @@
 #include "barc.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 void emu_init()
 {
@@ -2517,24 +2518,67 @@ uint8_t* LoadFromDisk(char* path, size_t* size)
     return buffer;
 }
 
-int main()
+uint8_t state = 0;
+
+void outTest(uint8_t c)
 {
+    if (!state)
+    {
+        state = c;
+        return;
+    }
+    else if (state == 1)
+    {
+        printf("State 1\n");
+        state = 0;
+        return;
+    }
+    else if (state == 2)
+    {
+        printf("State 2\n");
+        state = 0;
+        return;
+    }
+    else if (state == 3)
+    {
+        printf("State 3\n");
+        state = 0;
+        return;
+    }
+}
+
+int main(int argc, char* argv[])
+{
+    if (argc < 3) {printf("INVALID: Requires <inp> -S/-N\n"); return -1; }
     // Initialize registers and memory
     emu_init();
 
     size_t opcodes_size = 0;
 
-    uint8_t* opcodes = LoadFromDisk("out.bin", &opcodes_size);
+    uint8_t* opcodes = LoadFromDisk(argv[1], &opcodes_size);
 
     LoadProgram(opcodes, opcodes_size);
 
-    while (1)
+    SetINOutFunction((void*)outTest, OUTPUT_FUNCTION);
+
+    if (!strcmp(argv[2], "-S") || !strcmp(argv[2], "-s"))
     {
-        printf("\033[H\033[J");
-        DumpRegisters();
-        execute_instruction();
-        getchar();
+        while (1)
+        {
+            printf("\033[H\033[J");
+            DumpRegisters();
+            execute_instruction();
+            getchar();
+        }
     }
+    else
+    {
+        while (1)
+        {
+            execute_instruction();
+        }
+    }
+    
 
     return 0;
 }
