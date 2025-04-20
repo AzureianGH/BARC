@@ -57,8 +57,7 @@ void execute_instruction()
     uint8_t opcode = FetchByte();
     switch (opcode)
     {
-        case 0x00: // HLT
-            printf("HLT\n");
+        case 0x00:
             exit(0);
             break;
         case 0x01: // MOV A, B
@@ -2529,19 +2528,13 @@ void outTest(uint8_t c)
     }
     else if (state == 1)
     {
-        printf("State 1\n");
+        printf("%c", c);
         state = 0;
         return;
     }
     else if (state == 2)
     {
         printf("State 2\n");
-        state = 0;
-        return;
-    }
-    else if (state == 3)
-    {
-        printf("State 3\n");
         state = 0;
         return;
     }

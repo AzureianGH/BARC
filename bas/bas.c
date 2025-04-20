@@ -280,6 +280,10 @@ uint8_t strToU8(char* str)
     {
         return (uint8_t)-atoi(str + 1);
     }
+    else if (str[0] == '\'')
+    {
+        return (uint8_t)str[1];
+    }
     else // Decimal
     {
         return (uint8_t)atoi(str);
@@ -305,6 +309,10 @@ uint16_t strToNum(char* str)
     else if (str[0] == '-') // Negative number
     {
         return (uint16_t)-atoi(str + 1);
+    }
+    else if (str[0] == '\'')
+    {
+        return (uint8_t)str[1];
     }
     else // Decimal
     {
@@ -359,6 +367,18 @@ uint8_t isNumber(char* str)
         }
         return 1; // Valid decimal number
     }
+    //if it starts with ' and ends with ' get the char in the center and convert via ascii
+    else if (str[0] == '\'')
+    {
+        if (str[2] != '\'')
+        {
+            return 0; // Not a char
+        }
+        else
+        {
+            return 1; // valid char
+        }
+    }
     return 0; // Not a number
 }
 
@@ -395,13 +415,13 @@ char* trimWhitespace(char* str)
     *(end + 1) = '\0'; // Null terminate the string
     return str;
 }
-
 char** savedLabels = NULL;
 uint16_t* savedLabelsAddr = NULL;
 size_t savedLabelsCount = 0;
 typedef struct {
     char* label;
     size_t position;
+    uint8_t isWord; // Flag to indicate if the unresolved label should be treated as a word
 } UnresolvedLabel;
 
 UnresolvedLabel* unresolvedLabels = NULL;
@@ -429,8 +449,15 @@ void resolveUnresolvedLabels()
             printf("Unresolved label: %s\n", unresolvedLabels[i].label);
             exit(1); // Still unresolved
         }
-        setBytestackWord(unresolvedLabels[i].position, (uint16_t)labelAddr);
-        printf("\033[0;32mResolved label home: %s to address %04X\033[0m\n", unresolvedLabels[i].label, labelAddr);
+        if (unresolvedLabels[i].isWord)
+        {
+            setBytestackWord(unresolvedLabels[i].position, (uint16_t)labelAddr);
+        }
+        else
+        {
+            setBytestackByte(unresolvedLabels[i].position, (uint8_t)(labelAddr & 0xFF));
+        }
+        printf("\033[0;32mResolved label: %s to address %04X\033[0m\n", unresolvedLabels[i].label, labelAddr);
         free(unresolvedLabels[i].label);
     }
     free(unresolvedLabels);
@@ -438,7 +465,7 @@ void resolveUnresolvedLabels()
     unresolvedLabelsCount = 0;
 }
 
-void addUnresolvedLabel(char* label, size_t position)
+void addUnresolvedLabel(char* label, size_t position, uint8_t isWord)
 {
     printf("\033[0;31mOrphaned label: %s at position %zu\033[0m\n", label, position);
     unresolvedLabels = realloc(unresolvedLabels, sizeof(UnresolvedLabel) * (unresolvedLabelsCount + 1));
@@ -454,6 +481,7 @@ void addUnresolvedLabel(char* label, size_t position)
         exit(1);
     }
     unresolvedLabels[unresolvedLabelsCount].position = position;
+    unresolvedLabels[unresolvedLabelsCount].isWord = isWord;
     unresolvedLabelsCount++;
 }
 
@@ -525,7 +553,7 @@ void getOpcode(char* possibleKey)
                 int16_t labelAddr = getLabelAddress(splitWords[1]);
                 if (labelAddr == -1)
                 {
-                    addUnresolvedLabel(splitWords[1], getBytestackSize() + 1);
+                    addUnresolvedLabel(splitWords[1], getBytestackSize() + 1, 1);
                     nextnum = 0; // Placeholder
                 }
                 else
@@ -543,28 +571,28 @@ void getOpcode(char* possibleKey)
             uint8_t regOffset = getRegisterOffset(reg);
             if (regOffset == (uint8_t)-1)
             {
-            freeSplit(splitWords, splitcount);
-            printf("Invalid register: %s\n", splitWords[1]);
-            exit(1);
+                freeSplit(splitWords, splitcount);
+                printf("Invalid register: %s\n", splitWords[1]);
+                exit(1);
             }
 
             uint8_t nextnum;
             if (isNumber(splitWords[2]))
             {
-            nextnum = strToU8(splitWords[2]);
+                nextnum = strToU8(splitWords[2]);
             }
             else
             {
-            int16_t labelAddr = getLabelAddress(splitWords[2]);
-            if (labelAddr == -1)
-            {
-                addUnresolvedLabel(splitWords[2], getBytestackSize() + 1);
-                nextnum = 0; // Placeholder
-            }
-            else
-            {
-                nextnum = (uint8_t)labelAddr;
-            }
+                int16_t labelAddr = getLabelAddress(splitWords[2]);
+                if (labelAddr == -1)
+                {
+                    addUnresolvedLabel(splitWords[2], getBytestackSize() + 1, 0);
+                    nextnum = 0; // Placeholder
+                }
+                else
+                {
+                    nextnum = (uint8_t)(labelAddr & 0xFF); // Truncate to 8 bits
+                }
             }
 
             pushByte(*opcode + regOffset);
@@ -572,13 +600,57 @@ void getOpcode(char* possibleKey)
         }
         else if (!strcmp(splitWords[0], "DB"))
         {
-            uint8_t nextnum = strToU8(splitWords[1]);
-            pushByte(nextnum);
+            for (size_t i = 1; i < splitcount; i++)
+            {
+                if (splitWords[i][0] == '\"')
+                {
+                    int insideString = 1;
+                    size_t j = 1;
+                    while (insideString && i < splitcount)
+                    {
+                        while (splitWords[i][j] != '\0')
+                        {
+                            if (splitWords[i][j] == '\"')
+                            {
+                                insideString = 0;
+                                break;
+                            }
+                            pushByte((uint8_t)splitWords[i][j]);
+                            j++;
+                        }
+                        if (insideString)
+                        {
+                            i++;
+                            pushByte(' ');
+                            j = 0;
+                            if (i >= splitcount) break;
+                        }
+                    }
+                }
+                else
+                {
+                    uint8_t nextnum = strToU8(splitWords[i]);
+                    pushByte(nextnum);
+                }
+
+                if (splitWords[i][strlen(splitWords[i]) - 1] != ',')
+                {
+                    break;
+                }
+            }
         }
+
         else if (!strcmp(splitWords[0], "DW"))
         {
-            uint16_t nextnum = strToNum(splitWords[1]);
-            pushWord(nextnum);
+            for (size_t i = 1; i < splitcount; i++)
+            {
+                uint16_t nextnum = strToNum(splitWords[i]);
+                pushWord(nextnum);
+                if (splitWords[i][strlen(splitWords[i]) - 1] != ',')
+                {
+                    break;
+                }
+            }
         }
         else
         {
@@ -586,7 +658,6 @@ void getOpcode(char* possibleKey)
             printf("Invalid instruction: %s\n", possibleKey);
             exit(1);
         }
-        printf("Opcode: %s, Value: 0x%02X\n", possibleKey, *opcode);
     }
     else
     {

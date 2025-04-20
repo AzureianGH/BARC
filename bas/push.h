@@ -16,3 +16,4 @@ uint8_t* getBytestack();
 size_t getBytestackSize();
 
 void setBytestackWord(size_t index, uint16_t value);
+void setBytestackByte(size_t index, uint8_t value);

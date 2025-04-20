@@ -99,3 +99,16 @@ void setBytestackWord(size_t index, uint16_t value)
         exit(1);
     }
 }
+
+void setBytestackByte(size_t index, uint8_t value)
+{
+    if (index < stackSize)
+    {
+        stack[index] = value;
+    }
+    else
+    {
+        printf("Index out of bounds\n");
+        exit(1);
+    }
+}
