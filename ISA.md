@@ -6,6 +6,9 @@ BARC uses a 16-bit address space, ranging from 0x0000 to 0xFFFF, allowing for a 
 ## Instruction Set Architecture (ISA)
 BARC is an 8-bit architecture, meaning each instruction is 8 bits long. Instructions are categorized into R-type, I-type, J-type, and Extension instructions.
 
+### Stack
+There is no conventional stack in BARC. Instead, there is a 128-bit call stack, which is used for storing return addresses during subroutine calls. The stack pointer (SP) is an 8-bit register that points to the top of the stack. The stack grows upwards, meaning that when a value is pushed onto the stack, the SP increases.
+
 ### Registers
 BARC has 7 primary registers for data and address storage:
 - **A**: Accumulator register (8 bits)
@@ -77,7 +80,7 @@ X = Unused
 
 | Number | Opcode   | Operand(s) | Instruction       | Description                                   | Name | Total Bitwidth | Operand Bitwidth |
 |--------|----------|------------|-------------------|-----------------------------------------------|------|----------------|------------------|
-| 00 | `0000-0000` | NONE  | `NOP`             | No operation                                | No Operation | 8-bit | NONE |
+| 00 | `0000-0000` | NONE  | `HLT`             | Halt CPU operation                                 | Halt | 8-bit | NONE |
 | 01 | `0000-0001` | NONE  | `MOV A, B`        | Move value from A to B                      | Move | 8-bit | 8-bit | NONE |
 | 02 | `0000-0010` | NONE  | `MOV A, C`        | Move value from A to C                      | Move | 8-bit | 8-bit | NONE |
 | 03 | `0000-0011` | NONE  | `MOV A, D`        | Move value from A to D                      | Move | 8-bit | 8-bit | NONE |
@@ -215,20 +218,20 @@ X = Unused
 | 87 | `1000-0111` | NONE       | `SUB H, D`          | Subtract value in D from H                | Subtract | 8-bit | NONE |
 | 88 | `1000-1000` | NONE       | `SUB H, E`          | Subtract value in E from H                | Subtract | 8-bit | NONE |
 | 89 | `1000-1001` | NONE       | `SUB H, L`          | Subtract value in L from H                | Subtract | 8-bit | NONE |
-| 8A | `1000-1010` | IIII-IIII       | `ADD A, Imm`        | Add immediate value to A                | Add Immediate A | 16-bit | 8-bit |
-| 8B | `1000-1011` | IIII-IIII       | `ADD B, Imm`        | Add immediate value to B                | Add Immediate B | 16-bit | 8-bit |
-| 8C | `1000-1100` | IIII-IIII       | `ADD C, Imm`        | Add immediate value to C                | Add Immediate C | 16-bit | 8-bit |
-| 8D | `1000-1101` | IIII-IIII       | `ADD D, Imm`        | Add immediate value to D                | Add Immediate D | 16-bit | 8-bit |
-| 8E | `1000-1110` | IIII-IIII       | `ADD E, Imm`        | Add immediate value to E                | Add Immediate E | 16-bit | 8-bit |
-| 8F | `1000-1111` | IIII-IIII       | `ADD L, Imm`        | Add immediate value to L                | Add Immediate L | 16-bit | 8-bit |
-| 90 | `1001-0000` | IIII-IIII       | `ADD H, Imm`        | Add immediate value to H                | Add Immediate H | 16-bit | 8-bit |
-| 91 | `1001-0001` | IIII-IIII       | `SUB A, Imm`        | Subtract immediate value from A           | Subtract Immediate A | 16-bit | 8-bit |
-| 92 | `1001-0010` | IIII-IIII       | `SUB B, Imm`        | Subtract immediate value from B           | Subtract Immediate B | 16-bit | 8-bit |
-| 93 | `1001-0011` | IIII-IIII       | `SUB C, Imm`        | Subtract immediate value from C           | Subtract Immediate C | 16-bit | 8-bit |
-| 94 | `1001-0100` | IIII-IIII       | `SUB D, Imm`        | Subtract immediate value from D           | Subtract Immediate D | 16-bit | 8-bit |
-| 95 | `1001-0101` | IIII-IIII       | `SUB E, Imm`        | Subtract immediate value from E           | Subtract Immediate E | 16-bit | 8-bit |
-| 96 | `1001-0110` | IIII-IIII       | `SUB L, Imm`        | Subtract immediate value from L           | Subtract Immediate L | 16-bit | 8-bit |
-| 97 | `1001-0111` | IIII-IIII       | `SUB H, Imm`        | Subtract immediate value from H           | Subtract Immediate H | 16-bit | 8-bit |
+| 8A | `1000-1010` | IIII-IIII       | `ADI A, Imm`        | Add immediate value to A                | Add Immediate A | 16-bit | 8-bit |
+| 8B | `1000-1011` | IIII-IIII       | `ADI B, Imm`        | Add immediate value to B                | Add Immediate B | 16-bit | 8-bit |
+| 8C | `1000-1100` | IIII-IIII       | `ADI C, Imm`        | Add immediate value to C                | Add Immediate C | 16-bit | 8-bit |
+| 8D | `1000-1101` | IIII-IIII       | `ADI D, Imm`        | Add immediate value to D                | Add Immediate D | 16-bit | 8-bit |
+| 8E | `1000-1110` | IIII-IIII       | `ADI E, Imm`        | Add immediate value to E                | Add Immediate E | 16-bit | 8-bit |
+| 8F | `1000-1111` | IIII-IIII       | `ADI L, Imm`        | Add immediate value to L                | Add Immediate L | 16-bit | 8-bit |
+| 90 | `1001-0000` | IIII-IIII       | `ADI H, Imm`        | Add immediate value to H                | Add Immediate H | 16-bit | 8-bit |
+| 91 | `1001-0001` | IIII-IIII       | `SBI A, Imm`        | Subtract immediate value from A           | Subtract Immediate A | 16-bit | 8-bit |
+| 92 | `1001-0010` | IIII-IIII       | `SBI B, Imm`        | Subtract immediate value from B           | Subtract Immediate B | 16-bit | 8-bit |
+| 93 | `1001-0011` | IIII-IIII       | `SBI C, Imm`        | Subtract immediate value from C           | Subtract Immediate C | 16-bit | 8-bit |
+| 94 | `1001-0100` | IIII-IIII       | `SBI D, Imm`        | Subtract immediate value from D           | Subtract Immediate D | 16-bit | 8-bit |
+| 95 | `1001-0101` | IIII-IIII       | `SBI E, Imm`        | Subtract immediate value from E           | Subtract Immediate E | 16-bit | 8-bit |
+| 96 | `1001-0110` | IIII-IIII       | `SBI L, Imm`        | Subtract immediate value from L           | Subtract Immediate L | 16-bit | 8-bit |
+| 97 | `1001-0111` | IIII-IIII       | `SBI H, Imm`        | Subtract immediate value from H           | Subtract Immediate H | 16-bit | 8-bit |
 | 98 | `1001-1000` | NONE       | `INC A`             | Increment value in A                        | Increment A | 8-bit | NONE |
 | 99 | `1001-1001` | NONE       | `INC B`             | Increment value in B                        | Increment B | 8-bit | NONE |
 | 9A | `1001-1010` | NONE       | `INC C`             | Increment value in C                        | Increment C | 8-bit | NONE |
@@ -325,7 +328,7 @@ X = Unused
 | F5 | `1111-0101` | NONE                      | `XOR A, L`         | Logical XOR value in A with L              | Logical XOR | 8-bit | NONE |
 | F6 | `1111-0110` | NONE                      | `XOR A, H`         | Logical XOR value in A with H              | Logical XOR | 8-bit | NONE |
 | F7 | `1111-0111` | NONE                      | `NOT A`             | Logical NOT value in A                     | Logical NOT | 8-bit | NONE |
-| F8 | `1111-1000` | NONE                      | `HLT`             | Halt CPU operation                        | Halt | 8-bit | NONE |
+| F8 | `1111-1000` | NONE                      | `NOP`             | Do Nothing                        | No Operation | 8-bit | NONE |
 | F9 | `1111-1001` | NONE                      | `SHL A`             | Shift value in A left by 1 bit            | Shift Left | 8-bit | NONE |
 | FA | `1111-1010` | NONE                      | `SHR A`             | Shift value in A right by 1 bit           | Shift Right | 8-bit | NONE |
 | FB | `1111-1011` | NONE                      | `ROL A`             | Rotate value in A left by 1 bit           | Rotate Left | 8-bit | NONE |
