@@ -34,16 +34,26 @@ void execute_extended()
     switch (opcode)
     {
         case 0x00: // MULT Rd, Rs
-            Registers[FetchByte()] *= Registers[FetchByte()];
+            uint8_t srcdest = FetchByte();
+
+            Registers[(srcdest >> 4) & 0x0F] *= Registers[srcdest & 0x0F];
+            
             break;
         case 0x01: // DIV Rd, Rs
-            if (Registers[PeekByte()] == 0)
+            uint8_t dsrcdest = FetchByte();
+            if (Registers[dsrcdest & 0x0F] == 0)
             {
-                printf("Divide by zero error\n");
                 DumpRegisters();
+                printf("\033[1;31mDivision by zero\033[0m\n");
                 exit(DIVIDE_BY_ZERO);
             }
-            Registers[FetchByte()] /= Registers[FetchByte()];
+            Registers[(dsrcdest >> 4) & 0x0F] /= Registers[dsrcdest & 0x0F];
+            break;
+        case 0xFE: // IDENTIFY
+            Registers[A] = 'B';
+            Registers[B] = 'E';
+            Registers[C] = 'M';
+            Registers[D] = 'U';
             break;
         default:
             printf("Invalid Extended Opcode\n");

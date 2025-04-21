@@ -247,6 +247,9 @@ void loadKeys()
     setDictionary(&multiInstruction, "JNC", 0xDB);
     setDictionary(&multiInstruction, "JZC", 0xDC);
     setDictionary(&multiInstruction, "CALL", 0xDD);
+    setDictionary(&multiInstruction, "MULT", 0x00); // EXTENDED 
+    setDictionary(&multiInstruction, "DIV", 0x01); // EXTENDED
+    setDictionary(&multiInstruction, "IDENT", 0x02); // EXTENDED
     setDictionary(&multiInstruction, "DB", 0x00); // assembler directive for defining bytes
     setDictionary(&multiInstruction, "DW", 0x00); // assembler directive for defining words
 
@@ -598,6 +601,47 @@ void getOpcode(char* possibleKey)
             pushByte(*opcode + regOffset);
             pushByte(nextnum);
         }
+        else if (!strcmp(splitWords[0], "MULT") || !strcmp(splitWords[0], "DIV"))
+        {
+            char dest = splitWords[1][0];
+            char src = splitWords[2][0];
+            
+            pushByte(0xFF); // EXTEND
+            pushByte(*opcode);
+            //// DDDDSSSS
+            uint8_t destOffset = getRegisterOffset(dest);
+            uint8_t srcOffset = getRegisterOffset(src);
+            if (destOffset == (uint8_t)-1 || srcOffset == (uint8_t)-1)
+            {
+                freeSplit(splitWords, splitcount);
+                printf("Invalid register: %s or %s\n", splitWords[1], splitWords[2]);
+                exit(1);
+            }
+            pushByte((destOffset << 4) | srcOffset);
+        }
+        else if (!strcmp(splitWords[0], "IDENT"))
+        {
+            pushByte(0xFF); // EXTEND
+            pushByte(*opcode); // IDENTIFY
+        }
+        else if (!strcmp(splitWords[0], "IN") || !strcmp(splitWords[0], "OUT"))
+        {
+            char dest = splitWords[1][0];
+            char src = splitWords[2][0];
+            
+            pushByte(0xFF); // EXTEND
+            pushByte(*opcode);
+            //// DDDDSSSS
+            uint8_t destOffset = getRegisterOffset(dest);
+            uint8_t srcOffset = getRegisterOffset(src);
+            if (destOffset == (uint8_t)-1 || srcOffset == (uint8_t)-1)
+            {
+                freeSplit(splitWords, splitcount);
+                printf("Invalid register: %s or %s\n", splitWords[1], splitWords[2]);
+                exit(1);
+            }
+            pushByte((destOffset << 4) | srcOffset);
+        }
         else if (!strcmp(splitWords[0], "DB"))
         {
             for (size_t i = 1; i < splitcount; i++)
@@ -669,6 +713,12 @@ void getOpcode(char* possibleKey)
     freeSplit(splitWords, splitcount);
 }
 
+char* runPreprocessor(char* source, size_t* size)
+{
+
+   //check if theres any (inc) "filename", if so, append the file to the char*
+   
+}
 
 uint8_t* assemble(char* source, size_t* size)
 {
@@ -763,7 +813,9 @@ int main(int argc, char* argv[])
     
     size_t size = 0;
 
-    uint8_t* assembledCode = assemble((char*)source, &size); // Assemble the source code
+    source = runPreprocessor(source, &size); // Update source with the preprocessed source
+
+    uint8_t* assembledCode = assemble(source, &size); // Assemble the source code
 
     printf("Assembled code size: %zu\n", size);
 
@@ -799,8 +851,11 @@ int main(int argc, char* argv[])
         }
         fclose(outfile); // Close the output file
     }
+
     free(source); // Free the source code memory
+
     free(assembledCode); // Free the assembled code memory
+    fclose(infile); // Close the input file
 
     printf("Assembled Successfully to %s\n", argv[1]); // Print success message
     return 0;
