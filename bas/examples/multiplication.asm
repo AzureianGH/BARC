@@ -1,5 +1,5 @@
-(inc) "string.asm"
 START:
-    MVI B, 0x00
-    DIV A, B
+    MVI A, 0x05
+    MVI B, 0x03
+    MULT A, B
     HLT

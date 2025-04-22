@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <ctype.h>
 
 dictionary_t singleInstruction;
@@ -249,7 +250,7 @@ void loadKeys()
     setDictionary(&multiInstruction, "CALL", 0xDD);
     setDictionary(&multiInstruction, "MULT", 0x00); // EXTENDED 
     setDictionary(&multiInstruction, "DIV", 0x01); // EXTENDED
-    setDictionary(&multiInstruction, "IDENT", 0x02); // EXTENDED
+    setDictionary(&multiInstruction, "IDENT", 0xFE); // EXTENDED
     setDictionary(&multiInstruction, "DB", 0x00); // assembler directive for defining bytes
     setDictionary(&multiInstruction, "DW", 0x00); // assembler directive for defining words
 
@@ -713,11 +714,11 @@ void getOpcode(char* possibleKey)
     freeSplit(splitWords, splitcount);
 }
 
-char* runPreprocessor(char* source, size_t* size)
-{
 
-   //check if theres any (inc) "filename", if so, append the file to the char*
-   
+char* runPreprocessor(char* source, size_t* size) {
+
+    //find each (inc) "path" in the file and append to the main source
+    return source;
 }
 
 uint8_t* assemble(char* source, size_t* size)

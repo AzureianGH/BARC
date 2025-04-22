@@ -6,7 +6,7 @@
 void emu_init()
 {
     // Initialize the memory space and registers
-    for (int i = 0; i < 0xFFFF; i++)
+    for (int i = 0; i < MAX_MEMORY_SIZE; i++)
     {
         MemorySpace[i] = 0;
     }

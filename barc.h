@@ -8,6 +8,7 @@
 
 #define INPUT_FUNCTION 1
 #define OUTPUT_FUNCTION 0
+#define MAX_MEMORY_SIZE 0x4000 // 16KB
 
 //function ptr for in: uint8_t name()
 typedef uint8_t (*INFunction)(void);
@@ -56,7 +57,7 @@ typedef enum
     UNEXPECTED_END_OF_PROGRAM = 7
 } ERRORTYPE;
 
-uint8_t MemorySpace[0xFFFF]; // 64KB of memory
+uint8_t MemorySpace[MAX_MEMORY_SIZE];
 
 uint16_t CallStack[MAX_CALL_STACK_SIZE]; // Call stack for function calls
 
@@ -102,7 +103,7 @@ void DumpRegisters()
 
 uint8_t PeekByte()
 {
-    if (PC < 0xFFFF)
+    if (PC < MAX_MEMORY_SIZE)
     {
         return MemorySpace[PC];
     }
@@ -116,7 +117,7 @@ uint8_t PeekByte()
 
 uint8_t FetchByte()
 {
-    if (PC < 0xFFFF)
+    if (PC < MAX_MEMORY_SIZE)
     {
         return MemorySpace[PC++];
     }
@@ -130,7 +131,7 @@ uint8_t FetchByte()
 
 uint16_t FetchWord()
 {
-    if (PC < 0xFFFF - 1)
+    if (PC < MAX_MEMORY_SIZE - 1)
     {
         uint16_t word = MemorySpace[PC] | (MemorySpace[PC + 1] << 8);
         PC += 2;
