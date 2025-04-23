@@ -768,7 +768,24 @@ uint8_t* assemble(char* source, size_t* size)
 //args
 int main(int argc, char* argv[])
 {
-    
+    if (argc < 2)
+    {
+        printf("Usage: %s <outfile> <infile> (/B OR /T)\n", argv[0]); // Print usage message
+        return 1; // Exit the program with an error code
+    }
+    else if (argc == 2)
+    {
+        if (!strcmp(argv[1], "--version"))
+        {
+            printf("BARC Assembler v0.1\n");
+            printf("Written by: Nathan Hornby (https://github.com/AzureianGH)\n");
+            printf("Software License: MIT\n");
+            printf("Software is provided as-is, without warranty of any kind.\n");
+            printf("See LICENSE for more details.\n");
+            return 0; // Exit the program with success code
+        }
+    }
+    else
     if (argc < 4) // Check if the source code is provided as an argument
     {
         printf("Usage: %s <outfile> <infile> (/B OR /T)\n", argv[0]); // Print usage message
